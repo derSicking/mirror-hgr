@@ -1,6 +1,3 @@
-const width = 16 * 40
-const height = 9 * 40
-
 let video;
 let frameSize;
 
@@ -14,27 +11,45 @@ let initDone;
 let videoDone;
 
 async function init() {
-	poseDetector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, { modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER });
+	poseDetector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, { modelType: poseDetection.movenet.modelType.MULTIPOSE_LIGHTNING });
 
 	const model = handPoseDetection.SupportedModels.MediaPipeHands;
 	const detectorConfig = {
 		runtime: 'mediapipe', // or 'tfjs',
 		solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/hands',
-		modelType: 'full'
+		modelType: 'full',
+		maxHands: 4
 	}
 	handDetector = await handPoseDetection.createDetector(model, detectorConfig);
 
 	initDone = true;
 }
 
+let stop = true;
+
+let width, height;
+
 async function setup() {
-	createCanvas(width, height);
-	video = createCapture(VIDEO, () => { videoDone = true; frameSize = Math.min(video.width, video.height) });
+	video = createCapture(VIDEO, () => {
+		width = video.width;
+		height = video.height;
+		frameSize = Math.min(width, height);
+		createCanvas(width, height);
+		videoDone = true;
+	});
 	video.hide();
 
 	gestureInput = createInput("", "text");
 	createButton("Store Gesture").mouseClicked(() => {
 		storeGesture(gestureInput.elt.value, leftHand.hand);
+	});
+
+	let stopBtn = createButton(!stop ? "Stop" : "Start");
+	stopBtn.mouseClicked(() => {
+		let name = stop ? "Stop" : "Start";
+		stopBtn.elt.name = name;
+		stopBtn.elt.innerHTML = name;
+		stop = !stop;
 	});
 
 	await init();
@@ -70,51 +85,90 @@ const fillColors = [
 ]
 
 function drawPoseKeypoints() {
-	if (!poses || poses.length < 1) return;
-	for (i = 0; i < 17; i++) {
-		fill(fillColors[i]);
-		let keypoint = poses[0].keypoints[i];
-		if (keypoint.score < 0.2) continue;
-		let x = (keypoint.x / 1920) * width;
-		let y = (keypoint.y / 1080) * height;
+	for (let pose of poses) {
+		for (i = 0; i < 17; i++) {
+			fill(fillColors[i]);
+			let keypoint = pose.keypoints[i];
+			if (keypoint.score < 0.2) continue;
+			let x = keypoint.x;
+			let y = keypoint.y;
 
-		ellipse(x, y, 10);
+			ellipse(x, y, 10);
+		}
 	}
 }
 
 let leftHand = {}, rightHand = {};
 
-function pickHands() {
-	if (!poses || poses.length < 1) return;
+// TODO: Add max dist (Can a hand belong to a wrist when it is X distance away?)
 
-	let leftWrist = poses[0].keypoints[9];
-	let rightWrist = poses[0].keypoints[10];
-	let compareWrist;
+const wristScoreThreshold = 0.2;
+const maxHandWristDistanceAccurate = 0.2;
+const maxHandWristDistanceFuzzy = 0.4;
+
+function pickHands() {
+	if (!person.pose) return;
+
+	let leftWrist = person.pose.keypoints[9];
+	let rightWrist = person.pose.keypoints[10];
 
 	leftHand.dist = 1000;
 	rightHand.dist = 1000;
 
-	for (let hand of hands) {
-		let wrist = hand.keypoints[0];
-		let selectedHand;
+	for (let compareWrist of [leftWrist, rightWrist]) {
+		for (let hand of hands) {
+			let wrist = hand.keypoints[0];
+			let selectedHand;
+			let maxDist = maxHandWristDistanceAccurate;
 
-		// for some reason this is inverted
-		if (hand.handedness === "Right") {
-			compareWrist = leftWrist;
-			selectedHand = leftHand;
-		}
-		else {
-			compareWrist = rightWrist;
-			selectedHand = rightHand;
-		}
+			// TODO: The predicted handedness is sometimes wrong!
 
-		let dx = Math.abs(wrist.x - compareWrist.x);
-		let dy = Math.abs(wrist.y - compareWrist.y);
-		let dist = Math.sqrt(dx * dx + dy * dy) / frameSize;
+			// What data do i have?
+			// - handedness with score
+			// - distance to right wrist with score
+			// - distance to left wrist with score
+			// - previous hand and wrist positions
 
-		if (dist < selectedHand.dist) {
-			selectedHand.hand = hand;
-			selectedHand.dist = dist;
+			// What makes a hand a left hand?
+			// - being left handed with a very high score (actually inverted)
+			// - being left handed with a reasonable score and close to the left wrist with a reasonable score
+			// - being close to the left wrist, if it has a very high score
+			// - being closer to the left than to the right wrist, if both have high scores
+			// - being left handed with a reasonable score and far from the right wrist with a high score
+			// - being close to the previous left hand or wrist position, if that is recent
+
+			// TODO: Make a left/right fitness function (eg. positive/negative ?) that makes its calculations 
+			// based on above data and combinations.
+
+			if (hand.handedness === "Right") {
+				compareWrist = leftWrist;
+				selectedHand = leftHand;
+			}
+			else {
+				compareWrist = rightWrist;
+				selectedHand = rightHand;
+			}
+
+			if (compareWrist.score < wristScoreThreshold) {
+				// pose wrist cant be trusted
+				// use a previous wrist location
+				if (selectedHand.previousWrist) compareWrist = selectedHand.previousWrist;
+				maxDist = maxHandWristDistanceFuzzy;
+			}
+
+			let dx = wrist.x - compareWrist.x;
+			let dy = wrist.y - compareWrist.y;
+			let dist = Math.sqrt(dx * dx + dy * dy) / frameSize;
+
+			if (dist > maxDist) {
+				continue;
+			}
+
+			if (dist < selectedHand.dist) {
+				selectedHand.hand = hand;
+				selectedHand.dist = dist;
+				selectedHand.previousWrist = compareWrist;
+			}
 		}
 	}
 
@@ -126,16 +180,36 @@ function pickHands() {
 	}
 }
 
+let person = {};
+
+function pickPerson() {
+	if (!poses || poses.length < 1) return;
+
+	for (let pose of poses) {
+		// evaluate confidence
+		// get center of pose
+		// store distance to screen space center
+		// choose lowest distance
+		person.pose = pose;
+	}
+}
+
 function drawHandsKeypoints() {
-	fill(255, 255, 0);
-	let drawHands = [leftHand.hand, rightHand.hand];
+	// let drawHands = [leftHand.hand, rightHand.hand];
+	let drawHands = hands;
 	for (let hand of drawHands) {
 		if (!hand) continue;
+		fill(255, 255, 0, 64);
+		if (hand == leftHand.hand) {
+			fill(255, 128, 0);
+		} else if (hand == rightHand.hand) {
+			fill(128, 255, 0);
+		}
 		for (j = 0; j < 21; j++) {
 			let keypoint = hand.keypoints[j];
 			if (keypoint.score < 0.2) continue;
-			let x = (keypoint.x / 1920) * width;
-			let y = (keypoint.y / 1080) * height;
+			let x = keypoint.x;
+			let y = keypoint.y;
 
 			ellipse(x, y, 10);
 		}
@@ -144,39 +218,47 @@ function drawHandsKeypoints() {
 
 async function draw() {
 	if (!readyToDraw()) return;
-	await getPoses();
 
 	image(video, 0, 0, width, height);
 
-	// check for hand poses closest to wrists of body pose, to select only relevant hands
+	if (!stop) {
 
-	pickHands();
+		await getPoses();
 
-	// infer hand gesture type from 3d hand keypoints (eg. closed or open)
+		// check for hand poses closest to wrists of body pose, to select only relevant hands
 
-	let gestureLeft = detectGesture(leftHand.hand);
-	let gestureRight = detectGesture(rightHand.hand);
+		pickPerson();
+		pickHands();
 
-	if (leftHand.hand) {
-		let keypoint = leftHand.hand.keypoints[0];
-		let x = (keypoint.x / 1920) * width;
-		let y = (keypoint.y / 1080) * height;
-		text(gestureLeft, x, y);
+		// infer hand gesture type from 3d hand keypoints (eg. closed or open)
+
+		let gestureLeft = detectGesture(leftHand.hand);
+		let gestureRight = detectGesture(rightHand.hand);
+
+		if (leftHand.hand) {
+			let keypoint = leftHand.hand.keypoints[0];
+			let x = keypoint.x;
+			let y = keypoint.y;
+			text(gestureLeft, x, y);
+		}
+
+		if (rightHand.hand) {
+			let keypoint = rightHand.hand.keypoints[0];
+			let x = keypoint.x;
+			let y = keypoint.y;
+			text(gestureRight, x, y);
+		}
+
+		// infer direction of hand (where is tha palm facing? where is the thumb?)
+
+		// calculateDirections()
+
+		// draw a digital twin of two hands using positional data from pose and hand keypoints
+		// use motion, location and rotation of hands to call gesture events (like hold, swipe etc.)
+
+		drawPoseKeypoints();
+
+		drawHandsKeypoints();
 	}
-
-	if (rightHand.hand) {
-		let keypoint = rightHand.hand.keypoints[0];
-		let x = (keypoint.x / 1920) * width;
-		let y = (keypoint.y / 1080) * height;
-		text(gestureRight, x, y);
-	}
-
-	// infer direction of hand (where is tha palm facing? where is the thumb?)
-	// draw a digital twin of two hands using positional data from pose and hand keypoints
-	// use motion, location and rotation of hands to call gesture events (like hold, swipe etc.)
-
-	drawPoseKeypoints();
-
-	drawHandsKeypoints();
 
 }
