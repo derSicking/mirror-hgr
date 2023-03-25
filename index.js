@@ -244,7 +244,10 @@ function poseFitness(pose) {
 let person = {};
 
 function pickPerson() {
-	if (!poses || poses.length < 1) return;
+	if (!poses || poses.length < 1) {
+		person.pose = undefined;
+		return;
+	}
 
 	let fitnesses = [];
 
