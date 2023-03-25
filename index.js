@@ -303,6 +303,12 @@ function drawHandsKeypoints() {
 	}
 }
 
+let leftHandTwin = {
+	x: 0, y: 0,
+	wristOffsetX: 0, wristOffsetY: 0,
+	lastSet: 0, lastVisible: 0
+}
+
 async function draw() {
 	if (!readyToDraw()) return;
 
@@ -322,6 +328,7 @@ async function draw() {
 		let gestureLeft = detectGesture(leftHand.hand);
 		let gestureRight = detectGesture(rightHand.hand);
 
+		fill(0)
 		if (leftHand.hand) {
 			let keypoint = leftHand.hand.keypoints[0];
 			let x = keypoint.x;
@@ -341,11 +348,49 @@ async function draw() {
 		// calculateDirections()
 
 		// draw a digital twin of two hands using positional data from pose and hand keypoints
+		let wrist;
+		let hand;
+		let handX = leftHandTwin.x;
+		let handY = leftHandTwin.y;
+
+		if (person && person.pose) {
+			wrist = person.pose.keypoints[9];
+			if (wrist.score < 0.2) wrist = undefined;
+		}
+		if (leftHand && leftHand.hand) {
+			hand = leftHand.hand;
+			let kp = leftHand.hand.keypoints;
+			handX = (kp[0].x + kp[5].x + kp[17].x) / 3.0;
+			handY = (kp[0].y + kp[5].y + kp[17].y) / 3.0;
+			leftHandTwin.lastSet = Date.now();
+			leftHandTwin.lastVisible = Date.now();
+		}
+
+		if (wrist && hand) {
+			leftHandTwin.wristOffsetX = handX - wrist.x;
+			leftHandTwin.wristOffsetY = handY - wrist.y;
+		}
+		if (!hand && wrist) {
+			handX = wrist.x + leftHandTwin.wristOffsetX;
+			handY = wrist.y + leftHandTwin.wristOffsetY;
+			leftHandTwin.lastSet = Date.now();
+		}
+		leftHandTwin.x = handX;
+		leftHandTwin.y = handY;
+
 		// use motion, location and rotation of hands to call gesture events (like hold, swipe etc.)
 
-		drawPoseKeypoints();
+		//drawPoseKeypoints();
 
-		drawHandsKeypoints();
+		//drawHandsKeypoints();
 	}
+
+	let alphaLastSet = 255 - (Date.now() - leftHandTwin.lastSet) * 0.1;
+	let alphaLastVisible = 255 - (Date.now() - leftHandTwin.lastVisible - 1000) * 0.1
+
+	let alpha = Math.min(alphaLastSet, alphaLastVisible);
+
+	fill(255, 0, 0, alpha);
+	ellipse(leftHandTwin.x, leftHandTwin.y, 30);
 
 }
