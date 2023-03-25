@@ -103,8 +103,6 @@ function drawPoseKeypoints() {
 
 let leftHand = {}, rightHand = {};
 
-// TODO: Add max dist (Can a hand belong to a wrist when it is X distance away?)
-
 const wristScoreThreshold = 0.2;
 const maxHandWristDistanceAccurate = 0.2;
 const maxHandWristDistanceFuzzy = 0.4;
