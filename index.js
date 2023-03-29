@@ -273,11 +273,37 @@ function pickPerson() {
 		let dfit = fitnesses[0].fit - fitnesses[1].fit;
 
 		if (dist > maxPoseDistance && dfit < minFitnessOffset) {
+			// TODO: This still misfires
 			console.log("multiple people");
 			person.pose = undefined;
 		}
 	}
 }
+
+
+const handFillColors = [
+	[0, 255, 0],
+	[255, 0, 0],
+	[255, 0, 0],
+	[255, 0, 0],
+	[255, 0, 0],
+	[255, 255, 0],
+	[255, 0, 0],
+	[255, 0, 0],
+	[255, 0, 0],
+	[255, 0, 0],
+	[255, 0, 0],
+	[255, 0, 0],
+	[255, 0, 0],
+	[255, 0, 0],
+	[255, 0, 0],
+	[255, 0, 0],
+	[255, 0, 0],
+	[0, 255, 255],
+	[255, 0, 0],
+	[255, 0, 0],
+	[255, 0, 0],
+]
 
 function drawHandsKeypoints() {
 	let drawHands = [leftHand.hand, rightHand.hand];
@@ -291,6 +317,7 @@ function drawHandsKeypoints() {
 			fill(128, 255, 0);
 		}
 		for (j = 0; j < 21; j++) {
+			fill(handFillColors[j]);
 			let keypoint = hand.keypoints[j];
 			if (keypoint.score < 0.2) continue;
 			let x = keypoint.x;
@@ -301,10 +328,52 @@ function drawHandsKeypoints() {
 	}
 }
 
+function calculateDirections(hand) {
+	if (!hand) return;
+
+	// The 3D coordinates are not accurate, the hand flips when 
+	// rotated over its side, there is no way of telling if the 
+	// thumb is in front or behind afaik rn.
+
+	// Calculate inside angle of 2d palm keypoints (0, 5, 17)
+
+	let kp = hand.keypoints;
+
+	let a = kp[0];
+	let b = kp[5];
+	let c = kp[17];
+
+	// i'm looking for the z value of the cross product ab x bc
+
+	let abx = b.x - a.x;
+	let aby = b.y - a.y;
+
+	line(a.x, a.y, a.x + abx, a.y + aby);
+
+	scalar = Math.sqrt(abx * abx + aby * aby);
+	abx /= scalar;
+	aby /= scalar;
+
+	let acx = c.x - a.x;
+	let acy = c.y - a.y;
+
+	line(a.x, a.y, a.x + acx, a.y + acy);
+
+	scalar = Math.sqrt(acx * acx + acy * acy);
+	acx /= scalar;
+	acy /= scalar;
+
+	let crossz = abx * acy - aby * acx;
+
+	hand.facingCam = crossz < 0;
+
+}
+
 let leftHandTwin = {
 	x: 0, y: 0,
 	wristOffsetX: 0, wristOffsetY: 0,
-	lastSet: 0, lastVisible: 0
+	lastSet: 0, lastVisible: 0,
+	facingCam: false
 }
 
 async function draw() {
@@ -343,7 +412,11 @@ async function draw() {
 
 		// infer direction of hand (where is tha palm facing? where is the thumb?)
 
-		// calculateDirections()
+		calculateDirections(leftHand.hand);
+
+		if (leftHand.hand) {
+			leftHandTwin.facingCam = leftHand.hand.facingCam;
+		}
 
 		// draw a digital twin of two hands using positional data from pose and hand keypoints
 		let wrist;
@@ -378,9 +451,9 @@ async function draw() {
 
 		// use motion, location and rotation of hands to call gesture events (like hold, swipe etc.)
 
-		//drawPoseKeypoints();
+		drawPoseKeypoints();
 
-		//drawHandsKeypoints();
+		drawHandsKeypoints();
 	}
 
 	let alphaLastSet = 255 - (Date.now() - leftHandTwin.lastSet) * 0.1;
@@ -388,7 +461,7 @@ async function draw() {
 
 	let alpha = Math.min(alphaLastSet, alphaLastVisible);
 
-	fill(255, 0, 0, alpha);
+	fill(255, leftHandTwin.facingCam ? 255 : 0, 0, alpha);
 	ellipse(leftHandTwin.x, leftHandTwin.y, 30);
 
 }
