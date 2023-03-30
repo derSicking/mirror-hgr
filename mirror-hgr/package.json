@@ -1,0 +1,23 @@
+{
+  "name": "mirror-hgr",
+  "version": "0.1.0",
+  "description": "Hand Gesture Recognition",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Frederik Sicking",
+  "license": "ISC",
+  "dependencies": {
+    "@mediapipe/hands": "^0.4.1675469240",
+    "@tensorflow-models/hand-pose-detection": "^2.0.0",
+    "@tensorflow-models/pose-detection": "^2.1.0",
+    "@tensorflow/tfjs-backend-webgl": "^4.2.0",
+    "@tensorflow/tfjs-converter": "^4.2.0",
+    "@tensorflow/tfjs-core": "^4.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.2"
+  }
+}
