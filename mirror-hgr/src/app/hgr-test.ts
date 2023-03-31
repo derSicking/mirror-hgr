@@ -9,9 +9,6 @@ const sketch = (p5: P5) => {
   let running = false;
   let videoReady = false;
 
-  const width = 1920;
-  const height = 1080;
-
   function readyToDraw() {
     return videoReady;
   }
@@ -40,10 +37,9 @@ const sketch = (p5: P5) => {
 
     await tracker.init();
 
-    p5.createCanvas(width, height);
-
     video = p5.createCapture('VIDEO', () => {
-      video.size(width, height);
+      p5.createCanvas(video.elt.width, video.elt.height);
+
       videoReady = true;
     });
     video.hide();
@@ -58,7 +54,7 @@ const sketch = (p5: P5) => {
   p5.draw = async () => {
     if (!readyToDraw()) return;
 
-    p5.image(video, 0, 0, width, height);
+    p5.image(video, 0, 0);
 
     if (running) {
       await tracker.update(video.elt);
