@@ -6,51 +6,8 @@ import '@mediapipe/hands';
 import * as poseDetection from '@tensorflow-models/pose-detection';
 import * as tf from '@tensorflow/tfjs-core';
 import '@tensorflow/tfjs-backend-webgl';
-import { Timestamp } from 'rxjs';
 
-class Vec2D {
-  constructor(public x: number, public y: number) {}
-
-  public plus(other: Vec2D) {
-    return new Vec2D(this.x + other.x, this.y + other.y);
-  }
-
-  public minus(other: Vec2D) {
-    return new Vec2D(this.x - other.x, this.y - other.y);
-  }
-
-  public scale(scale: number) {
-    return new Vec2D(this.x * scale, this.y * scale);
-  }
-
-  public get magnitude() {
-    return Math.sqrt(this.x * this.x + this.y * this.y);
-  }
-
-  public distance(other: Vec2D) {
-    return this.minus(other).magnitude;
-  }
-}
-
-class Vec3D {
-  constructor(public x: number, public y: number, public z: number) {}
-
-  public cross(other: Vec3D) {
-    return new Vec3D(
-      this.y * other.z - this.z * other.y,
-      this.z * other.x - this.x * other.z,
-      this.x * other.y - this.y * other.x
-    );
-  }
-
-  public static from2D(vec2d: Vec2D, z: number = 0) {
-    return new Vec3D(vec2d.x, vec2d.y, z);
-  }
-}
-
-class Box {
-  constructor(public min: Vec2D, public max: Vec2D) {}
-}
+import { Vec2D, Vec3D, Box } from './vec';
 
 interface Named {
   name: string;
@@ -177,6 +134,7 @@ class Pose implements Scored {
 }
 
 class HandPoseKeypoints {
+  public angles: number[];
   constructor(
     public keypoints2D: Keypoint2D[],
     public keypoints3D: Keypoint3D[]
@@ -186,6 +144,17 @@ class HandPoseKeypoints {
       console.error(keypoints3D);
       throw new Error('Wrong amount of keypoints in a hand pose!');
     }
+    this.angles = this.calculateAngles(keypoints3D);
+  }
+
+  private calculateAngles(keypoints: Keypoint3D[]) {
+    for (let finger = 0; finger < 5; finger++) {
+      for (let joint = 0; joint < 3; joint++) {
+        // calculate angle at joint
+        // kp[finger * 4 + joint + 1]
+      }
+    }
+    return [];
   }
 
   public static fromTfjsHandPose(hand: handPoseDetection.Hand) {
