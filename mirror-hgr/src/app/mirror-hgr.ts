@@ -4,7 +4,6 @@ import '@tensorflow/tfjs-backend-webgl';
 import '@mediapipe/hands';
 
 import * as poseDetection from '@tensorflow-models/pose-detection';
-import * as tf from '@tensorflow/tfjs-core';
 import '@tensorflow/tfjs-backend-webgl';
 
 import { Vec2D, Vec3D, Box } from './vec';
@@ -133,8 +132,117 @@ class Pose implements Scored {
   }
 }
 
+// calculate angle at joint
+// kp[finger * 4 + joint + 1]
+//
+// choose indices or angles that are not relevant to a
+// specific gesture and leave them out of any distance equation,
+// ie only add the squares of relevant distances
+//
+// Add tolerances for every gesture, and normalize distances
+// based on ratio of the tolerance
+//
+// Add tolerances to every feature...
+
+class Angle {
+  constructor(
+    public angle: number,
+    public range: number,
+    public isCaredAbout: boolean = true,
+    public tolerance: number = 1
+  ) {}
+}
+
+export class HandGesture {
+  constructor(
+    public fingers: Array<Array<Angle>>,
+    public betweenFingers: Array<Angle>
+  ) {}
+
+  public static fromHandPoseKeypoints(pose: HandPoseKeypoints) {
+    let gesture = new HandGesture([], []);
+    let wrist = pose.wrist.kp3d;
+    for (let finger = 0; finger < 5; finger++) {
+      let joints = [];
+      for (let joint = 0; joint < 3; joint++) {
+        let base = wrist;
+        if (joint > 0) base = pose.keypoints3D[finger * 4 + joint];
+        let middle = pose.keypoints3D[finger * 4 + joint + 1];
+        let target = pose.keypoints3D[finger * 4 + joint + 2];
+
+        joints.push(
+          new Angle(
+            Math.acos(
+              base
+                .minus(middle)
+                .normalize()
+                .dot(target.minus(middle).normalize())
+            ),
+            Math.PI / 2
+          )
+        );
+      }
+      gesture.fingers.push(joints);
+    }
+    for (let i = 0; i < 4; i++) {
+      let left = pose.keypoints3D[i * 4 + 1];
+      let leftTip = pose.keypoints3D[i * 4 + 4];
+      let right = pose.keypoints3D[i * 4 + 5];
+      let rightTip = pose.keypoints3D[i * 4 + 8];
+
+      let middle = left.plus(right).scale(1 / 2);
+      let m2l = leftTip.minus(middle);
+      let m2r = rightTip.minus(middle);
+
+      let refNormal = pose.indexStart.kp3d
+        .minus(pose.wrist.kp3d)
+        .cross(pose.pinkyStart.kp3d.minus(pose.wrist.kp3d))
+        .normalize();
+
+      let m2lp = m2l.minus(refNormal.scale(m2l.dot(refNormal)));
+      let m2rp = m2r.minus(refNormal.scale(m2r.dot(refNormal)));
+      let middlep = middle.minus(refNormal.scale(middle.dot(refNormal)));
+      gesture.betweenFingers.push(
+        new Angle(
+          Math.acos(
+            m2lp.minus(middlep).normalize().dot(m2rp.minus(middlep).normalize())
+          ) *
+            (m2lp
+              .minus(middlep)
+              .normalize()
+              .cross(m2rp.minus(middlep).normalize())
+              .dot(refNormal) > 0
+              ? 1
+              : -1),
+          Math.PI
+        )
+      );
+    }
+
+    // TODO: Add hand rotation (euler angles)
+
+    return gesture;
+  }
+
+  public distance(other: HandGesture) {
+    let acc = 0;
+    for (let finger = 0; finger < 5; finger++) {
+      for (let joint = 0; joint < 3; joint++) {
+        let angle = this.fingers[finger][joint];
+        if (!angle.isCaredAbout) continue;
+        let tolerance = angle.tolerance * angle.range;
+        let x =
+          (this.fingers[finger][joint].angle -
+            other.fingers[finger][joint].angle) /
+          tolerance;
+        acc += x * x;
+      }
+    }
+    return Math.sqrt(acc);
+  }
+}
+
 class HandPoseKeypoints {
-  public angles: number[];
   constructor(
     public keypoints2D: Keypoint2D[],
     public keypoints3D: Keypoint3D[]
@@ -144,17 +252,7 @@ class HandPoseKeypoints {
       console.error(keypoints3D);
       throw new Error('Wrong amount of keypoints in a hand pose!');
     }
-    this.angles = this.calculateAngles(keypoints3D);
-  }
-
-  private calculateAngles(keypoints: Keypoint3D[]) {
-    for (let finger = 0; finger < 5; finger++) {
-      for (let joint = 0; joint < 3; joint++) {
-        // calculate angle at joint
-        // kp[finger * 4 + joint + 1]
-      }
-    }
-    return [];
+    HandGesture.fromHandPoseKeypoints(this);
   }
 
   public static fromTfjsHandPose(hand: handPoseDetection.Hand) {
@@ -360,8 +458,8 @@ export class SinglePersonTrackerConfig {
     maxPoseDistance: 1.0,
   };
   public handPicker = {
-    rawScoreMultiplier: 2.0,
-    handednessMultiplier: 1.0,
+    rawScoreMultiplier: 3.0,
+    handednessMultiplier: 4.0,
     distanceMultiplier: 70.0,
     distanceDeltaMultiplier: 100.0,
     wristScoreThreshold: 0.2,
@@ -547,6 +645,7 @@ export class SinglePersonTracker extends Tracker {
     let rightHands = [];
 
     for (let hand of this.hands) {
+      if (hand.score < 0.5) continue;
       if (this.determineHandedness(hand) >= 0) {
         leftHands.push(hand);
       } else {

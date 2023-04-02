@@ -9,6 +9,8 @@ const sketch = (p5: P5) => {
   let running = false;
   let videoReady = false;
 
+  let gestures: Map<string, hgr.HandGesture> = new Map();
+
   function readyToDraw() {
     return videoReady;
   }
@@ -49,6 +51,18 @@ const sketch = (p5: P5) => {
       running = !running;
       startBtn.elt.innerHTML = running ? 'Stop' : 'Start';
     });
+
+    let gestureInput = p5.createInput();
+
+    p5.createButton('Store Gesture').mouseClicked(() => {
+      if (!tracker.leftHand.handPose) return;
+      gestures.set(
+        gestureInput.value().toString(),
+        hgr.HandGesture.fromHandPoseKeypoints(
+          tracker.leftHand.handPose?.keypoints
+        )
+      );
+    });
   };
 
   p5.draw = async () => {
@@ -70,6 +84,25 @@ const sketch = (p5: P5) => {
 
         p5.fill(255, hand.palmFacingCamera ? 255 : 0, 0, alpha);
         p5.circle(hand.center.x, hand.center.y, 30);
+
+        if (hand.handPose) {
+          let currentGesture = hgr.HandGesture.fromHandPoseKeypoints(
+            hand.handPose.keypoints
+          );
+          let closestGesture;
+          let distance;
+
+          for (let storedGesture of gestures) {
+            let dist = storedGesture[1].distance(currentGesture);
+            if (distance == undefined || distance > dist) {
+              distance = dist;
+              closestGesture = storedGesture;
+            }
+          }
+          p5.fill(0, 0, 255);
+          p5.textSize(20);
+          p5.text(closestGesture?.[0] || 'None', hand.center.x, hand.center.y);
+        }
       }
     }
   };

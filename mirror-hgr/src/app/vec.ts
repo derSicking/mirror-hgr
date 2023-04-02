@@ -1,5 +1,3 @@
-import { Vector2D } from '@tensorflow-models/pose-detection/dist/posenet/types';
-
 export class Vec2D {
   constructor(public x: number, public y: number) {}
 
@@ -37,6 +35,27 @@ export class Vec3D {
       this.z * other.x - this.x * other.z,
       this.x * other.y - this.y * other.x
     );
+  }
+
+  public plus(other: Vec3D) {
+    return new Vec3D(this.x + other.x, this.y + other.y, this.z + other.z);
+  }
+
+  public minus(other: Vec3D) {
+    return new Vec3D(this.x - other.x, this.y - other.y, this.z - other.z);
+  }
+
+  public scale(scale: number) {
+    return new Vec3D(this.x * scale, this.y * scale, this.z * scale);
+  }
+
+  public get magnitude() {
+    return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
+  }
+
+  public normalize() {
+    let mag = this.magnitude;
+    return this.scale(1 / mag);
   }
 
   public dot(other: Vec3D) {
