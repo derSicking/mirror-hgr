@@ -1,0 +1,10 @@
+<ul>
+    <li *ngFor="let gesture of gestures | keyvalue">
+        <button [class.selected]="gesture.value === selectedGesture" (click)="onSelect(gesture.value)">{{gesture.key}}</button>
+    </li>
+</ul>
+<div *ngFor="let finger of selectedGesture?.fingers">
+    <div *ngFor="let angle of finger">
+        <p>{{angle.angle}}</p>
+    </div>
+</div>

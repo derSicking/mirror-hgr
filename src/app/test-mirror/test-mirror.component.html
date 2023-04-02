@@ -1,0 +1,7 @@
+<div id="mirror"></div>
+<div>
+    <button (click)="onStart()">{{running?"Stop":"Start"}}</button>
+    <input [(ngModel)]="gestureName">
+    <button (click)="onStore()">Store Gesture</button>
+</div>
+<app-gesture-editor [gestures]="gestures"></app-gesture-editor>

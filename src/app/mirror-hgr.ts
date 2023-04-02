@@ -132,18 +132,6 @@ class Pose implements Scored {
   }
 }
 
-// calculate angle at joint
-// kp[finger * 4 + joint + 1]
-//
-// choose indices or angles that are not relevant to a
-// specific gesture and leave them out of any distance equation,
-// ie only add the squares of relevant distances
-//
-// Add tolerances for every gesture, and normalize distances
-// based on ratio of the tolerance
-//
-// Add tolerances to every feature...
-
 class Angle {
   constructor(
     public angle: number,
@@ -458,6 +446,7 @@ export class SinglePersonTrackerConfig {
     maxPoseDistance: 1.0,
   };
   public handPicker = {
+    minHandScore: 0.3,
     rawScoreMultiplier: 3.0,
     handednessMultiplier: 4.0,
     distanceMultiplier: 70.0,
@@ -645,7 +634,7 @@ export class SinglePersonTracker extends Tracker {
     let rightHands = [];
 
     for (let hand of this.hands) {
-      if (hand.score < 0.5) continue;
+      if (hand.score < this._config.handPicker.minHandScore) continue;
       if (this.determineHandedness(hand) >= 0) {
         leftHands.push(hand);
       } else {
