@@ -1,27 +1,29 @@
-# MirrorHgr
+# Mirror Hand Gesture Recognition (HGR)
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 15.2.4.
+This is an experimental project testing hand gesture recognition in the browser, using a simple webcam. It uses two Tensorflow JS projects ([Hand Pose Detection](https://github.com/tensorflow/tfjs-models/tree/master/hand-pose-detection) and [MoveNet](https://github.com/tensorflow/tfjs-models/tree/master/pose-detection/src/movenet)) which detect and estimate poses of hands and bodies, to then track the hand positions and recognize static hand gestures.
 
-## Development server
+**WARNING!** This project is a **WORK IN PROGRESS** and experimental, everything is subject to change! Use at your own risk!
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+## Setup
 
-## Code scaffolding
+This project is based on Angular and uses the [Angular CLI](https://github.com/angular/angular-cli) and the [Yarn](https://yarnpkg.com/) package Manager.
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+To install them, you need a recent version of [Node.js](https://nodejs.org/).
 
-## Build
+Run the following commands to setup and run the project:
+*(On Linux, you might need to use **sudo** to install things globally)*
+```bash
+# If node or npm versions are not up to date:
+npm install --global n
+n lts
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+# To install angular cli (ng) and yarn:
+npm install --global @angular/cli yarn
 
-## Running unit tests
+# To download all project dependencies:
+cd mirror-hgr # navigate to your cloned directory
+yarn
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
-
-## Running end-to-end tests
-
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
-
-## Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+# To run a dev server:
+ng serve --open
+```
