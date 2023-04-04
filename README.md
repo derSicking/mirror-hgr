@@ -2,6 +2,8 @@
 
 This is an experimental project testing hand gesture recognition in the browser, using a simple webcam. It uses two Tensorflow JS projects ([Hand Pose Detection](https://github.com/tensorflow/tfjs-models/tree/master/hand-pose-detection) and [MoveNet](https://github.com/tensorflow/tfjs-models/tree/master/pose-detection/src/movenet)) which detect and estimate poses of hands and bodies, to then track the hand positions and recognize static hand gestures.
 
+![Demo Image](https://github.com/derSicking/mirror-hgr/blob/master/demo.png?raw=true)
+
 **WARNING!** This project is a **WORK IN PROGRESS** and experimental, everything is subject to change! Use at your own risk!
 
 ## Setup
