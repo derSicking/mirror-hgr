@@ -11,6 +11,7 @@ This project is based on Angular and uses the [Angular CLI](https://github.com/a
 To install them, you need a recent version of [Node.js](https://nodejs.org/).
 
 Run the following commands to setup and run the project:
+
 *(On Linux, you might need to use **sudo** to install things globally)*
 ```bash
 # If node or npm versions are not up to date:
