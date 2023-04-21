@@ -323,11 +323,11 @@ export class Tracker {
     this._handPoseDetector = await handPoseDetection.createDetector(
       handPoseDetection.SupportedModels.MediaPipeHands,
       {
-        runtime: 'mediapipe',
+        runtime: 'tfjs',
         solutionPath: '/assets/hands',
         modelType: 'full',
         maxHands: 4,
-      }
+      } as handPoseDetection.MediaPipeHandsTfjsModelConfig
     );
     this._init = true;
   }

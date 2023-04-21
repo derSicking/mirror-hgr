@@ -117,10 +117,11 @@ export class TestMirrorComponent {
     p5.draw = async () => {
       if (!readyToDraw()) return;
 
-      p5.image(video, 0, 0, width, height);
-
-      if (this.running) {
+      if (!this.running) {
+        p5.image(video, 0, 0, width, height);
+      } else {
         await this.tracker.update(video.elt);
+        p5.image(video, 0, 0, width, height);
 
         drawPerson(this.tracker.person);
         drawHands(this.tracker.bothHands);
