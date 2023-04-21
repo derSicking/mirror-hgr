@@ -23,12 +23,12 @@
     "tslib": "^2.3.0",
     "zone.js": "~0.12.0",
     "@mediapipe/hands": "^0.4.1675469240",
-    "@mediapipe/pose": "^0.5.1675469404",
+    "@mediapipe/pose": "~0.4.0",
     "@tensorflow-models/hand-pose-detection": "2.0.0",
-    "@tensorflow-models/pose-detection": "2.1.0",
-    "@tensorflow/tfjs-backend-webgl": "4.2.0",
-    "@tensorflow/tfjs-converter": "4.2.0",
-    "@tensorflow/tfjs-core": "4.2.0",
+    "@tensorflow-models/pose-detection": "2.0.0",
+    "@tensorflow/tfjs-backend-webgl": "3.21.0",
+    "@tensorflow/tfjs-converter": "3.21.0",
+    "@tensorflow/tfjs-core": "3.21.0",
     "p5": "^1.6.0"
   },
   "devDependencies": {
