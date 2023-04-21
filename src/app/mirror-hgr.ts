@@ -215,6 +215,7 @@ export class HandGesture {
     return gesture;
   }
 
+  // TODO: Is this correct? Evaluate this matematically, especially the tolearance part
   public distance(other: HandGesture) {
     let acc = 0;
     for (let finger = 0; finger < 5; finger++) {
