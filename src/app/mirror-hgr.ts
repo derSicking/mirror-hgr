@@ -134,6 +134,7 @@ class Pose implements Scored {
 
 class Angle {
   constructor(
+    public name: String,
     public angle: number,
     public range: number,
     public isCaredAbout: boolean = true,
@@ -160,6 +161,7 @@ export class HandGesture {
 
         joints.push(
           new Angle(
+            middle.name,
             Math.acos(
               base
                 .minus(middle)
@@ -192,6 +194,7 @@ export class HandGesture {
       let middlep = middle.minus(refNormal.scale(middle.dot(refNormal)));
       gesture.betweenFingers.push(
         new Angle(
+          'between' + (i + 1),
           Math.acos(
             m2lp.minus(middlep).normalize().dot(m2rp.minus(middlep).normalize())
           ) *
@@ -452,8 +455,8 @@ export class SinglePersonTrackerConfig {
     distanceMultiplier: 70.0,
     distanceDeltaMultiplier: 100.0,
     wristScoreThreshold: 0.2,
-    maxHandWristDistanceAccurate: 0.2,
-    maxHandWristDistanceFuzzy: 0.3,
+    maxHandWristDistanceAccurate: 0.1,
+    maxHandWristDistanceFuzzy: 0.1,
   };
 }
 

@@ -1,10 +1,48 @@
 <ul>
-    <li *ngFor="let gesture of gestures | keyvalue">
-        <button [class.selected]="gesture.value === selectedGesture" (click)="onSelect(gesture.value)">{{gesture.key}}</button>
-    </li>
+  <li *ngFor="let gesture of gestures | keyvalue">
+    <button
+      [class.selected]="gesture.value === selectedGesture"
+      (click)="onSelect(gesture.value)"
+    >
+      {{ gesture.key }}
+    </button>
+  </li>
 </ul>
 <div *ngFor="let finger of selectedGesture?.fingers">
-    <div *ngFor="let angle of finger">
-        <p>{{angle.angle}}</p>
-    </div>
+  <div *ngFor="let angle of finger">
+    <label>{{ angle.name }}</label>
+    <input type="checkbox" [(ngModel)]="angle.isCaredAbout" />
+    <input
+      [(ngModel)]="angle.angle"
+      type="range"
+      min="1.57"
+      max="3.14"
+      step="0.01"
+    />
+    <input
+      [(ngModel)]="angle.tolerance"
+      type="range"
+      min="0"
+      max="1"
+      step="0.01"
+    />
+  </div>
+</div>
+<div *ngFor="let between of selectedGesture?.betweenFingers">
+  <label>{{ between.name }}</label>
+  <input type="checkbox" [(ngModel)]="between.isCaredAbout" />
+  <input
+    [(ngModel)]="between.angle"
+    type="range"
+    min="0"
+    max="3.14"
+    step="0.01"
+  />
+  <input
+    [(ngModel)]="between.tolerance"
+    type="range"
+    min="0"
+    max="1"
+    step="0.01"
+  />
 </div>
